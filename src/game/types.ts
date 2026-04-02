@@ -41,7 +41,7 @@ export interface DoublesState {
 
 export type GameState = SinglesState | DoublesState;
 
-export type GameAction = 'serverScores' | 'serverLoses';
+export type GameAction = 'serverScores' | 'serverLoses' | 'manualEdit';
 
 export interface GameSession {
   past: GameState[]; // stack of previous states

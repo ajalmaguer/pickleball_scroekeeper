@@ -9,6 +9,7 @@ import {
   getServer,
   getScoreAnnouncement,
   getWinner,
+  setManualState,
 } from './game/game';
 import type {
   GameSession,
@@ -224,9 +225,11 @@ function ConfirmModal({
 function GameMenu({
   onNewGame,
   onSwapTeams,
+  onEditScore,
 }: {
   onNewGame: () => void;
   onSwapTeams: () => void;
+  onEditScore: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -238,6 +241,11 @@ function GameMenu({
   function handleSwapTeams() {
     setOpen(false);
     onSwapTeams();
+  }
+
+  function handleEditScore() {
+    setOpen(false);
+    onEditScore();
   }
 
   return (
@@ -253,6 +261,12 @@ function GameMenu({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 bg-(--bg) border border-(--border) rounded-lg shadow-xl z-20 min-w-36 overflow-hidden">
+            <button
+              onClick={handleEditScore}
+              className="w-full px-4 py-2.5 text-left text-sm text-(--text-h) hover:bg-(--accent-bg) transition-colors"
+            >
+              Edit Score
+            </button>
             <button
               onClick={handleSwapTeams}
               className="w-full px-4 py-2.5 text-left text-sm text-(--text-h) hover:bg-(--accent-bg) transition-colors"
@@ -272,6 +286,136 @@ function GameMenu({
   );
 }
 
+function ManualEditModal({
+  state,
+  onConfirm,
+  onCancel,
+}: {
+  state: GameState;
+  onConfirm: (next: GameState) => void;
+  onCancel: () => void;
+}) {
+  const [score0, setScore0] = useState(String(state.scores[0]));
+  const [score1, setScore1] = useState(String(state.scores[1]));
+  const [servingIndex, setServingIndex] = useState<0 | 1>(
+    state.type === 'singles' ? state.servingPlayerIndex : state.servingTeamIndex
+  );
+  const [isSecondServer, setIsSecondServer] = useState(
+    state.type === 'doubles' ? state.isSecondServer : false
+  );
+
+  function label0() {
+    return state.type === 'singles' ? state.players[0].name : teamLabel(state.teams[0]);
+  }
+  function label1() {
+    return state.type === 'singles' ? state.players[1].name : teamLabel(state.teams[1]);
+  }
+
+  function handleConfirm() {
+    const s0 = Math.max(0, parseInt(score0, 10) || 0);
+    const s1 = Math.max(0, parseInt(score1, 10) || 0);
+    const scores: [number, number] = [s0, s1];
+    if (state.type === 'singles') {
+      onConfirm(setManualState(state, scores, servingIndex));
+    } else {
+      onConfirm(setManualState(state, scores, servingIndex, isSecondServer));
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+      <div className="bg-(--bg) border border-(--border) rounded-xl p-6 max-w-sm w-full mx-4 flex flex-col gap-5 shadow-xl">
+        <h2 className="text-(--text-h) font-semibold text-lg">Edit Score</h2>
+
+        {/* Scores */}
+        <div className="flex gap-3">
+          {([0, 1] as const).map((i) => (
+            <label key={i} className="flex flex-col gap-1 flex-1">
+              <span className="text-xs text-(--text) truncate">{i === 0 ? label0() : label1()}</span>
+              <input
+                type="number"
+                min={0}
+                value={i === 0 ? score0 : score1}
+                onChange={(e) => (i === 0 ? setScore0 : setScore1)(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-(--border) bg-transparent text-(--text-h) text-center text-xl font-mono focus:outline-none focus:border-(--accent-border) transition-colors"
+              />
+            </label>
+          ))}
+        </div>
+
+        {/* Who is serving */}
+        <div className="flex flex-col gap-2">
+          <span className="text-xs text-(--text)">Serving</span>
+          <div className="flex gap-2">
+            {([0, 1] as const).map((i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setServingIndex(i)}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors truncate px-2 ${
+                  servingIndex === i
+                    ? 'bg-(--accent) text-white border-(--accent)'
+                    : 'border-(--border) text-(--text-h) hover:border-(--accent-border)'
+                }`}
+              >
+                {i === 0 ? label0() : label1()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Server 1 / Server 2 (doubles only) */}
+        {state.type === 'doubles' && (
+          <div className="flex flex-col gap-2">
+            <span className="text-xs text-(--text)">Server</span>
+            <div className="flex gap-2">
+              {([false, true] as const).map((second) => {
+                const playerName = state.teams[servingIndex].players[second ? 1 : 0].name;
+                return (
+                  <button
+                    key={String(second)}
+                    type="button"
+                    onClick={() => setIsSecondServer(second)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      isSecondServer === second
+                        ? 'bg-(--accent) text-white border-(--accent)'
+                        : 'border-(--border) text-(--text-h) hover:border-(--accent-border)'
+                    }`}
+                  >
+                    {playerName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Starting positions note (doubles only) */}
+        {state.type === 'doubles' && (
+          <p className="text-xs text-(--text) opacity-60 leading-relaxed">
+            Starting sides — {state.teams[0].players[0].name} &amp; {state.teams[1].players[0].name}: even &nbsp;|&nbsp; {state.teams[0].players[1].name} &amp; {state.teams[1].players[1].name}: odd
+          </p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="flex-1 py-2 rounded-lg bg-(--accent) text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function GameScreen({
   session,
   onAction,
@@ -279,6 +423,7 @@ function GameScreen({
   onRedo,
   onNewGame,
   onRenamePlayer,
+  onEditScore,
 }: {
   session: GameSession;
   onAction: (a: 'serverScores' | 'serverLoses') => void;
@@ -286,8 +431,10 @@ function GameScreen({
   onRedo: () => void;
   onNewGame: () => void;
   onRenamePlayer: (id: string, name: string) => void;
+  onEditScore: (next: GameState) => void;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showEditScore, setShowEditScore] = useState(false);
   const [teamsSwapped, setTeamsSwapped] = useState(false);
   const state = session.present;
   const winner = getWinner(state);
@@ -316,6 +463,7 @@ function GameScreen({
           <GameMenu
             onNewGame={() => setShowConfirm(true)}
             onSwapTeams={() => setTeamsSwapped((v) => !v)}
+            onEditScore={() => setShowEditScore(true)}
           />
         </div>
       </div>
@@ -349,6 +497,16 @@ function GameScreen({
           message="Start a new game? Your current game will be lost."
           onConfirm={onNewGame}
           onCancel={() => setShowConfirm(false)}
+        />
+      )}
+      {showEditScore && (
+        <ManualEditModal
+          state={state}
+          onConfirm={(next) => {
+            onEditScore(next);
+            setShowEditScore(false);
+          }}
+          onCancel={() => setShowEditScore(false)}
         />
       )}
     </div>
@@ -406,17 +564,20 @@ function PointHistory({
         {[...session.past].reverse().map((pastState, reversedI) => {
           const originalI = session.past.length - 1 - reversedI;
           const action = session.actions[originalI];
+          const isManual = action === 'manualEdit';
           const won = action === 'serverScores';
           const sideOut =
-            !won && (pastState.type === 'singles' || pastState.isSecondServer);
+            !won && !isManual && (pastState.type === 'singles' || pastState.isSecondServer);
           const server = getServer(pastState);
           const side = getCourtPositions(pastState)[server.id];
-          const resultLabel = won ? 'won' : sideOut ? 'side out' : 'lost';
-          const resultClass = won
-            ? 'text-(--accent)'
-            : sideOut
-              ? 'text-red-400'
-              : 'text-(--text)';
+          const resultLabel = isManual ? 'edited' : won ? 'won' : sideOut ? 'side out' : 'lost';
+          const resultClass = isManual
+            ? 'text-(--text) opacity-50'
+            : won
+              ? 'text-(--accent)'
+              : sideOut
+                ? 'text-red-400'
+                : 'text-(--text)';
           const stripe =
             reversedI % 2 === 0 ? 'bg-(--bg)' : 'bg-(--accent-bg)/30';
           return (
@@ -427,7 +588,7 @@ function PointHistory({
               <span
                 className={`px-3 py-1.5 ${stripe} font-mono text-(--text) text-nowrap text-center`}
               >
-                {getScoreAnnouncement(pastState)}
+                {getScoreAnnouncement(pastState)}{isManual && <span className="text-(--text) opacity-50 ml-0.5">*</span>}
               </span>
               <span
                 className={`px-3 py-1.5 ${stripe} ${resultClass} text-right`}
@@ -670,6 +831,20 @@ export default function App() {
     });
   }
 
+  function handleEditScore(next: GameState) {
+    setSession((s) => {
+      if (!s) return s;
+      return {
+        ...s,
+        past: [...s.past, s.present],
+        present: next,
+        future: [],
+        actions: [...s.actions, 'manualEdit' as const],
+        undoneActions: [],
+      };
+    });
+  }
+
   return (
     <GameScreen
       session={session}
@@ -678,6 +853,7 @@ export default function App() {
       onRedo={() => setSession((s) => s && redo(s))}
       onNewGame={() => setSession(null)}
       onRenamePlayer={handleRenamePlayer}
+      onEditScore={handleEditScore}
     />
   );
 }

@@ -192,6 +192,67 @@ export function getWinner(state: GameState): Player | Team | null {
   return state.teams[winnerIndex];
 }
 
+// ── Manual state override ──────────────────────────────────────────────────────
+
+// Recomputes all derived fields (courtPositions, currentServerId) from the
+// canonical inputs so the caller only needs to supply scores + serving info.
+export function setManualState(
+  state: SinglesState,
+  scores: [number, number],
+  servingPlayerIndex: 0 | 1
+): SinglesState;
+export function setManualState(
+  state: DoublesState,
+  scores: [number, number],
+  servingTeamIndex: 0 | 1,
+  isSecondServer: boolean
+): DoublesState;
+export function setManualState(
+  state: GameState,
+  scores: [number, number],
+  servingIndexOrTeam: 0 | 1,
+  isSecondServer?: boolean
+): GameState {
+  if (state.type === 'singles') {
+    return {
+      ...state,
+      scores,
+      servingPlayerIndex: servingIndexOrTeam,
+      isGameOver: checkIsGameOver(scores, state.config),
+    };
+  }
+
+  // Doubles: derive court positions from initial sides + score parity.
+  // Each time a team scores, both their players flip. So after N points,
+  // player[0] (who started 'even') is on: N%2===0 ? 'even' : 'odd'.
+  const courtPositions: Record<string, CourtSide> = {};
+  for (let teamIdx = 0; teamIdx < 2; teamIdx++) {
+    const team = state.teams[teamIdx];
+    const flipped = scores[teamIdx] % 2 !== 0;
+    courtPositions[team.players[0].id] = flipped ? 'odd' : 'even';
+    courtPositions[team.players[1].id] = flipped ? 'even' : 'odd';
+  }
+
+  // Determine currentServerId from servingTeamIndex + isSecondServer.
+  // Server 1 always stands on the score-parity side.
+  const servingTeamIndex = servingIndexOrTeam;
+  const servingTeam = state.teams[servingTeamIndex];
+  const server1Side: CourtSide = scores[servingTeamIndex] % 2 === 0 ? 'even' : 'odd';
+  const server1 = servingTeam.players.find((p) => courtPositions[p.id] === server1Side)!;
+  const server2 = servingTeam.players.find((p) => courtPositions[p.id] !== server1Side)!;
+  const currentServerId = isSecondServer ? server2.id : server1.id;
+
+  return {
+    ...state,
+    scores,
+    servingTeamIndex,
+    isSecondServer: isSecondServer ?? false,
+    currentServerId,
+    courtPositions,
+    isGameOver: checkIsGameOver(scores, state.config),
+  };
+}
+
 // ── Session (undo/redo/history) ────────────────────────────────────────────────
 
 export function createSession(state: GameState): GameSession {
