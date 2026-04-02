@@ -379,7 +379,7 @@ function PointHistory({
         {/* Current state row */}
         {!state.isGameOver && (
           <>
-            <span className="px-3 py-2 bg-(--accent-bg) font-bold text-left min-w-0">
+            <span className="px-3 py-2 bg-(--accent-bg) font-bold text-left min-w-0 flex items-center">
               {server.name} serving ({side})
             </span>
             <span className="px-3 py-2 bg-(--accent-bg) font-mono text-(--text-h) font-bold text-nowrap flex items-center justify-center text-xl">
@@ -504,7 +504,9 @@ function CourtCell({
             key={p.id}
             onClick={() => startEdit(p)}
             className={`text-xs text-center leading-tight cursor-pointer hover:underline ${
-              p.id === serverId ? 'text-(--accent) font-bold' : 'text-(--text-h) font-medium'
+              p.id === serverId
+                ? 'text-(--accent) font-bold'
+                : 'text-(--text-h) font-medium'
             }`}
           >
             {p.name}
