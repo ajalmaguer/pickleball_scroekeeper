@@ -503,8 +503,8 @@ function CourtCell({
           <span
             key={p.id}
             onClick={() => startEdit(p)}
-            className={`text-xs font-medium text-center leading-tight cursor-pointer hover:underline ${
-              p.id === serverId ? 'text-(--accent)' : 'text-(--text-h)'
+            className={`text-xs text-center leading-tight cursor-pointer hover:underline ${
+              p.id === serverId ? 'text-(--accent) font-bold' : 'text-(--text-h) font-medium'
             }`}
           >
             {p.name}
