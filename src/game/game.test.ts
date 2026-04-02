@@ -540,7 +540,12 @@ describe('setManualState', () => {
 
   describe('doubles', () => {
     it('sets scores and serving team', () => {
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [5, 3], 0, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [5, 3],
+        0,
+        false
+      );
       expect(state.scores).toEqual([5, 3]);
       expect(state.servingTeamIndex).toBe(0);
       expect(state.isSecondServer).toBe(false);
@@ -548,7 +553,12 @@ describe('setManualState', () => {
 
     it('derives court positions from score parity (odd score flips from start)', () => {
       // team0 score=5 (odd) → p1 on odd, p2 on even; team1 score=3 (odd) → p3 on odd, p4 on even
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [5, 3], 0, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [5, 3],
+        0,
+        false
+      );
       expect(getPlayerSide(state, p1)).toBe('odd');
       expect(getPlayerSide(state, p2)).toBe('even');
       expect(getPlayerSide(state, p3)).toBe('odd');
@@ -557,7 +567,12 @@ describe('setManualState', () => {
 
     it('derives court positions from score parity (even score = starting sides)', () => {
       // team0 score=4 (even) → p1 on even, p2 on odd; team1 score=6 (even) → p3 on even, p4 on odd
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [4, 6], 1, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [4, 6],
+        1,
+        false
+      );
       expect(getPlayerSide(state, p1)).toBe('even');
       expect(getPlayerSide(state, p2)).toBe('odd');
       expect(getPlayerSide(state, p3)).toBe('even');
@@ -566,35 +581,62 @@ describe('setManualState', () => {
 
     it('sets currentServerId to server 1 (score-parity side) when isSecondServer=false', () => {
       // team0 score=5 (odd) → server1Side='odd' → p1 is on odd → p1 is server 1
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [5, 3], 0, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [5, 3],
+        0,
+        false
+      );
       expect(getServer(state)).toEqual(p1);
     });
 
     it('sets currentServerId to server 2 (non-parity side) when isSecondServer=true', () => {
       // team0 score=5 (odd) → server1Side='odd' → p1 on odd → p2 (on even) is server 2
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [5, 3], 0, true);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [5, 3],
+        0,
+        true
+      );
       expect(getServer(state)).toEqual(p2);
     });
 
     it('sets currentServerId correctly for team1 serving with even score', () => {
       // team1 score=6 (even) → server1Side='even' → p3 on even → p3 is server 1
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [4, 6], 1, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [4, 6],
+        1,
+        false
+      );
       expect(getServer(state)).toEqual(p3);
     });
 
     it('recomputes isGameOver', () => {
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [11, 7], 0, false);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [11, 7],
+        0,
+        false
+      );
       expect(state.isGameOver).toBe(true);
     });
 
     it('result is consistent with normal play for the same score', () => {
       // Manually set to a reachable game state and confirm announced score matches
-      const state = setManualState(createDoublesGame([p1, p2], [p3, p4]), [3, 2], 0, true);
+      const state = setManualState(
+        createDoublesGame([p1, p2], [p3, p4]),
+        [3, 2],
+        0,
+        true
+      );
       expect(getScoreAnnouncement(state)).toBe('3-2-2');
     });
 
     it('preserves teams and config', () => {
-      const original = createDoublesGame([p1, p2], [p3, p4], { pointsToWin: 21 });
+      const original = createDoublesGame([p1, p2], [p3, p4], {
+        pointsToWin: 21,
+      });
       const state = setManualState(original, [10, 5], 0, false);
       expect(state.teams[0].players).toEqual([p1, p2]);
       expect(state.teams[1].players).toEqual([p3, p4]);

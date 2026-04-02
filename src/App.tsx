@@ -305,10 +305,14 @@ function ManualEditModal({
   );
 
   function label0() {
-    return state.type === 'singles' ? state.players[0].name : teamLabel(state.teams[0]);
+    return state.type === 'singles'
+      ? state.players[0].name
+      : teamLabel(state.teams[0]);
   }
   function label1() {
-    return state.type === 'singles' ? state.players[1].name : teamLabel(state.teams[1]);
+    return state.type === 'singles'
+      ? state.players[1].name
+      : teamLabel(state.teams[1]);
   }
 
   function handleConfirm() {
@@ -331,12 +335,16 @@ function ManualEditModal({
         <div className="flex gap-3">
           {([0, 1] as const).map((i) => (
             <label key={i} className="flex flex-col gap-1 flex-1">
-              <span className="text-xs text-(--text) truncate">{i === 0 ? label0() : label1()}</span>
+              <span className="text-xs text-(--text) truncate">
+                {i === 0 ? label0() : label1()}
+              </span>
               <input
                 type="number"
                 min={0}
                 value={i === 0 ? score0 : score1}
-                onChange={(e) => (i === 0 ? setScore0 : setScore1)(e.target.value)}
+                onChange={(e) =>
+                  (i === 0 ? setScore0 : setScore1)(e.target.value)
+                }
                 className="w-full px-3 py-2 rounded-lg border border-(--border) bg-transparent text-(--text-h) text-center text-xl font-mono focus:outline-none focus:border-(--accent-border) transition-colors"
               />
             </label>
@@ -370,7 +378,8 @@ function ManualEditModal({
             <span className="text-xs text-(--text)">Server</span>
             <div className="flex gap-2">
               {([false, true] as const).map((second) => {
-                const playerName = state.teams[servingIndex].players[second ? 1 : 0].name;
+                const playerName =
+                  state.teams[servingIndex].players[second ? 1 : 0].name;
                 return (
                   <button
                     key={String(second)}
@@ -393,7 +402,10 @@ function ManualEditModal({
         {/* Starting positions note (doubles only) */}
         {state.type === 'doubles' && (
           <p className="text-xs text-(--text) opacity-60 leading-relaxed">
-            Starting sides — {state.teams[0].players[0].name} &amp; {state.teams[1].players[0].name}: even &nbsp;|&nbsp; {state.teams[0].players[1].name} &amp; {state.teams[1].players[1].name}: odd
+            Starting sides — {state.teams[0].players[0].name} &amp;{' '}
+            {state.teams[1].players[0].name}: even &nbsp;|&nbsp;{' '}
+            {state.teams[0].players[1].name} &amp;{' '}
+            {state.teams[1].players[1].name}: odd
           </p>
         )}
 
@@ -567,10 +579,18 @@ function PointHistory({
           const isManual = action === 'manualEdit';
           const won = action === 'serverScores';
           const sideOut =
-            !won && !isManual && (pastState.type === 'singles' || pastState.isSecondServer);
+            !won &&
+            !isManual &&
+            (pastState.type === 'singles' || pastState.isSecondServer);
           const server = getServer(pastState);
           const side = getCourtPositions(pastState)[server.id];
-          const resultLabel = isManual ? 'edited' : won ? 'won' : sideOut ? 'side out' : 'lost';
+          const resultLabel = isManual
+            ? 'edited'
+            : won
+              ? 'won'
+              : sideOut
+                ? 'side out'
+                : 'lost';
           const resultClass = isManual
             ? 'text-(--text) opacity-50'
             : won
@@ -588,7 +608,10 @@ function PointHistory({
               <span
                 className={`px-3 py-1.5 ${stripe} font-mono text-(--text) text-nowrap text-center`}
               >
-                {getScoreAnnouncement(pastState)}{isManual && <span className="text-(--text) opacity-50 ml-0.5">*</span>}
+                {getScoreAnnouncement(pastState)}
+                {isManual && (
+                  <span className="text-(--text) opacity-50 ml-0.5">*</span>
+                )}
               </span>
               <span
                 className={`px-3 py-1.5 ${stripe} ${resultClass} text-right`}

@@ -123,7 +123,9 @@ export function serverLoses(state: GameState): GameState {
   if (!state.isSecondServer) {
     // Server 1 lost — partner becomes server 2 (no position change)
     const servingTeam = state.teams[state.servingTeamIndex];
-    const server2 = servingTeam.players.find((p) => p.id !== state.currentServerId)!;
+    const server2 = servingTeam.players.find(
+      (p) => p.id !== state.currentServerId
+    )!;
     return { ...state, isSecondServer: true, currentServerId: server2.id };
   }
 
@@ -132,7 +134,9 @@ export function serverLoses(state: GameState): GameState {
   const newTeam = state.teams[newTeamIndex];
   const newScore = state.scores[newTeamIndex];
   const server1Side: CourtSide = newScore % 2 === 0 ? 'even' : 'odd';
-  const server1 = newTeam.players.find((p) => state.courtPositions[p.id] === server1Side)!;
+  const server1 = newTeam.players.find(
+    (p) => state.courtPositions[p.id] === server1Side
+  )!;
   return {
     ...state,
     servingTeamIndex: newTeamIndex,
@@ -150,7 +154,8 @@ export function getServer(state: GameState): Player {
 
   const allPlayers = state.teams.flatMap((t) => t.players);
   const server = allPlayers.find((p) => p.id === state.currentServerId);
-  if (!server) throw new Error(`Server with id ${state.currentServerId} not found`);
+  if (!server)
+    throw new Error(`Server with id ${state.currentServerId} not found`);
   return server;
 }
 
@@ -237,9 +242,14 @@ export function setManualState(
   // Server 1 always stands on the score-parity side.
   const servingTeamIndex = servingIndexOrTeam;
   const servingTeam = state.teams[servingTeamIndex];
-  const server1Side: CourtSide = scores[servingTeamIndex] % 2 === 0 ? 'even' : 'odd';
-  const server1 = servingTeam.players.find((p) => courtPositions[p.id] === server1Side)!;
-  const server2 = servingTeam.players.find((p) => courtPositions[p.id] !== server1Side)!;
+  const server1Side: CourtSide =
+    scores[servingTeamIndex] % 2 === 0 ? 'even' : 'odd';
+  const server1 = servingTeam.players.find(
+    (p) => courtPositions[p.id] === server1Side
+  )!;
+  const server2 = servingTeam.players.find(
+    (p) => courtPositions[p.id] !== server1Side
+  )!;
   const currentServerId = isSecondServer ? server2.id : server1.id;
 
   return {
