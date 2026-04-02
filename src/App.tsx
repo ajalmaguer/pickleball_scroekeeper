@@ -206,6 +206,57 @@ function ConfirmModal({
   );
 }
 
+function GameMenu({
+  onNewGame,
+  onSwapTeams,
+}: {
+  onNewGame: () => void;
+  onSwapTeams: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function handleNewGame() {
+    setOpen(false);
+    onNewGame();
+  }
+
+  function handleSwapTeams() {
+    setOpen(false);
+    onSwapTeams();
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-9 h-9 flex items-center justify-center rounded-lg border border-(--border) text-(--text) hover:border-(--accent-border) transition-colors text-lg leading-none"
+        aria-label="More options"
+      >
+        ⋮
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 bg-(--bg) border border-(--border) rounded-lg shadow-xl z-20 min-w-36 overflow-hidden">
+            <button
+              onClick={handleSwapTeams}
+              className="w-full px-4 py-2.5 text-left text-sm text-(--text-h) hover:bg-(--accent-bg) transition-colors"
+            >
+              Swap Teams
+            </button>
+            <button
+              onClick={handleNewGame}
+              className="w-full px-4 py-2.5 text-left text-sm text-(--text-h) hover:bg-(--accent-bg) transition-colors"
+            >
+              New Game
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function GameScreen({
   session,
   onAction,
@@ -222,104 +273,61 @@ function GameScreen({
   onRenamePlayer: (id: string, name: string) => void;
 }) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [teamsSwapped, setTeamsSwapped] = useState(false);
   const state = session.present;
-  const server = getWinner(state) ? null : getServer(state);
-  const announcement = getScoreAnnouncement(state);
   const winner = getWinner(state);
   const canUndo = session.past.length > 0;
   const canRedo = session.future.length > 0;
 
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-8 px-6 py-10">
-      <h2 className="text-lg font-medium text-(--text) uppercase tracking-widest">
-        {state.type === 'singles' ? 'Singles' : 'Doubles'}
-      </h2>
-
-      {/* Court diagram */}
-      <CourtDiagram state={state} onRenamePlayer={onRenamePlayer} />
-
-      {/* Score announcement */}
-      <div className="text-center">
-        <p className="text-xs uppercase tracking-widest text-(--text) mb-1">
-          Score call
-        </p>
-        <p className="text-4xl font-mono font-semibold text-(--text-h)">
-          {announcement}
-        </p>
-      </div>
-
-      {/* Server info */}
-      {server && (
-        <p className="text-sm text-(--text)">
-          Serving:{' '}
-          <span className="text-(--text-h) font-medium">{server.name}</span>
-          {state.type === 'doubles' && (
-            <span className="ml-1 text-(--text)">
-              (server {state.isSecondServer ? '2' : '1'})
-            </span>
-          )}
-        </p>
-      )}
-
-      {/* Game over banner */}
-      {winner && (
-        <div className="w-full max-w-sm bg-(--accent-bg) border border-(--accent-border) rounded-xl p-5 text-center">
-          <p className="text-2xl font-semibold text-(--text-h) mb-1">
-            {state.type === 'singles'
-              ? `${(winner as Player).name} wins!`
-              : `${teamLabel(winner as Team)} wins!`}
-          </p>
-          <p className="text-(--text) text-sm">
-            {state.scores[0]} – {state.scores[1]}
-          </p>
-        </div>
-      )}
-
-      {/* Action buttons */}
-      {!winner && (
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <button
-            onClick={() => onAction('serverScores')}
-            className="py-4 rounded-xl bg-(--accent) text-white font-semibold text-lg hover:opacity-90 transition-opacity"
-          >
-            Server Scores
-          </button>
-          <button
-            onClick={() => onAction('serverLoses')}
-            className="py-4 rounded-xl border-2 border-(--accent-border) text-(--text-h) font-semibold text-lg hover:bg-(--accent-bg) transition-colors"
-          >
-            Server Loses
-          </button>
-        </div>
-      )}
-
-      {/* Undo / Redo / New game */}
-      <div className="flex gap-3">
-        {canUndo && (
-          <button
-            onClick={onUndo}
-            className="px-5 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors"
-          >
-            ← Undo
-          </button>
-        )}
-        {canRedo && (
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-(--border) shrink-0">
+        <button
+          onClick={onUndo}
+          disabled={!canUndo}
+          className="px-4 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          ← Undo
+        </button>
+        <div className="flex items-center gap-2">
           <button
             onClick={onRedo}
-            className="px-5 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors"
+            disabled={!canRedo}
+            className="px-4 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Redo →
           </button>
-        )}
-        <button
-          onClick={() => setShowConfirm(true)}
-          className="px-5 py-2 rounded-lg border border-(--border) text-sm text-(--text) hover:border-(--accent-border) transition-colors"
-        >
-          New Game
-        </button>
+          <GameMenu
+            onNewGame={() => setShowConfirm(true)}
+            onSwapTeams={() => setTeamsSwapped((v) => !v)}
+          />
+        </div>
       </div>
 
-      <PointHistory session={session} />
+      {/* Scrollable content */}
+      <div className="flex flex-col items-center gap-6 px-4 py-6 overflow-y-auto flex-1">
+        <CourtDiagram
+          state={state}
+          onRenamePlayer={onRenamePlayer}
+          teamsSwapped={teamsSwapped}
+        />
+
+        {winner && (
+          <div className="w-full bg-(--accent-bg) border border-(--accent-border) rounded-xl p-5 text-center">
+            <p className="text-2xl font-semibold text-(--text-h) mb-1">
+              {state.type === 'singles'
+                ? `${(winner as Player).name} wins!`
+                : `${teamLabel(winner as Team)} wins!`}
+            </p>
+            <p className="text-(--text) text-sm">
+              {state.scores[0]} – {state.scores[1]}
+            </p>
+          </div>
+        )}
+
+        <PointHistory session={session} onAction={onAction} />
+      </div>
 
       {showConfirm && (
         <ConfirmModal
@@ -334,52 +342,83 @@ function GameScreen({
 
 // ── Point history ─────────────────────────────────────────────────────────────
 
-function PointHistory({ session }: { session: GameSession }) {
-  if (session.past.length === 0) return null;
+function PointHistory({
+  session,
+  onAction,
+}: {
+  session: GameSession;
+  onAction: (a: 'serverScores' | 'serverLoses') => void;
+}) {
+  if (session.present.isGameOver && session.past.length === 0) return null;
+
+  const state = session.present;
+  const server = getServer(state);
+  const side = getCourtPositions(state)[server.id];
 
   return (
-    <div className="w-full max-w-xs">
+    <div className="w-full">
       <p className="text-xs uppercase tracking-widest text-(--text) mb-2">
-        History
+        Score Log
       </p>
-      <div className="grid grid-cols-[1fr_1fr_1fr] gap-x-4 gap-y-1 max-h-48 overflow-y-auto text-xs">
-        {(() => {
-          const state = session.present;
-          if (state.isGameOver) return null;
-          const server = getServer(state);
-          const side = getCourtPositions(state)[server.id];
-          return (
-            <>
-              <span className="text-left text-nowrap text-(--text-h) font-medium">{server.name} serving ({side})</span>
-              <span className="font-mono text-(--text) text-center">{getScoreAnnouncement(state)}</span>
-              <span />
-            </>
-          );
-        })()}
-        {[...session.past].reverse().map((state, reversedI) => {
+      <div className="flex flex-col rounded-lg overflow-hidden border border-(--border) text-xs">
+        {/* Current state row */}
+        {!state.isGameOver && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-(--accent-bg)">
+            <span className="flex-1 min-w-0 text-left font-bold">
+              {server.name} serving ({side})
+            </span>
+            <span className="font-mono text-(--text-h) font-bold text-nowrap shrink-0">
+              {getScoreAnnouncement(state)}
+            </span>
+            <span className="flex gap-2 shrink-0">
+              <button
+                onClick={() => onAction('serverScores')}
+                className="px-4 py-2 rounded bg-(--accent) text-white font-medium text-sm hover:opacity-90 transition-opacity"
+              >
+                Win
+              </button>
+              <button
+                onClick={() => onAction('serverLoses')}
+                className="px-4 py-2 rounded border border-(--border) text-(--text-h) font-medium text-sm hover:bg-(--bg) transition-colors"
+              >
+                Lose
+              </button>
+            </span>
+          </div>
+        )}
+
+        {/* Past rows */}
+        {[...session.past].reverse().map((pastState, reversedI) => {
           const originalI = session.past.length - 1 - reversedI;
           const action = session.actions[originalI];
           const won = action === 'serverScores';
-          const sideOut = !won && (state.type === 'singles' || state.isSecondServer);
-          const server = getServer(state);
-          const side = getCourtPositions(state)[server.id];
+          const sideOut =
+            !won && (pastState.type === 'singles' || pastState.isSecondServer);
+          const server = getServer(pastState);
+          const side = getCourtPositions(pastState)[server.id];
           const resultLabel = won ? 'won' : sideOut ? 'side out' : 'lost';
-          const resultClass = won ? 'text-(--accent)' : sideOut ? 'text-red-400' : 'text-(--text)';
+          const resultClass = won
+            ? 'text-(--accent)'
+            : sideOut
+              ? 'text-red-400'
+              : 'text-(--text)';
+          const stripe =
+            reversedI % 2 === 0 ? 'bg-(--bg)' : 'bg-(--accent-bg)/30';
           return (
-            <>
-              <span key={`name-${reversedI}`} className="text-left text-nowrap">
+            <div
+              key={reversedI}
+              className={`text-left flex items-center gap-2 px-3 py-1.5 ${stripe}`}
+            >
+              <span className="flex-1 min-w-0 text-(--text) text-nowrap overflow-hidden text-ellipsis">
                 {server.name} served ({side})
               </span>
-              <span
-                key={`score-${reversedI}`}
-                className="font-mono text-(--text) text-center"
-              >
-                {getScoreAnnouncement(state)}
+              <span className="font-mono text-(--text) text-nowrap shrink-0">
+                {getScoreAnnouncement(pastState)}
               </span>
-              <span key={`result-${reversedI}`} className={resultClass}>
+              <span className={`${resultClass} text-right shrink-0 w-14`}>
                 {resultLabel}
               </span>
-            </>
+            </div>
           );
         })}
       </div>
@@ -464,9 +503,11 @@ function CourtCell({
 function CourtDiagram({
   state,
   onRenamePlayer,
+  teamsSwapped,
 }: {
   state: GameState;
   onRenamePlayer: (id: string, name: string) => void;
+  teamsSwapped: boolean;
 }) {
   const positions = getCourtPositions(state);
   const serverId =
@@ -474,14 +515,15 @@ function CourtDiagram({
       ? state.currentServerId
       : state.players[state.servingPlayerIndex].id;
 
-  // team index 0 = bottom half of court, team index 1 = top half
-  const teams: Player[][] =
+  // team index 0 = top half of court, team index 1 = bottom half (swappable)
+  const rawTeams: Player[][] =
     state.type === 'doubles'
       ? [
           state.teams[0].players as unknown as Player[],
           state.teams[1].players as unknown as Player[],
         ]
       : [[state.players[0]], [state.players[1]]];
+  const teams = teamsSwapped ? [rawTeams[1], rawTeams[0]] : rawTeams;
 
   // Bird's-eye layout (team1's "even" = their right = left side of court from above):
   //  top-left  = team1/even  |  top-right  = team1/odd
@@ -492,7 +534,7 @@ function CourtDiagram({
   }
 
   return (
-    <div className="w-full max-w-xs border-2 border-(--border) rounded-xl overflow-hidden">
+    <div className="w-full border-2 border-(--border) rounded-xl overflow-hidden">
       {/* Team 0 (top) */}
       <div className="flex divide-x-2 divide-(--border)">
         <CourtCell
