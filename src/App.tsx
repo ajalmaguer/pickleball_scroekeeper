@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   createSinglesGame,
   createDoublesGame,
@@ -27,6 +27,7 @@ interface SetupForm {
 }
 
 const NAMES_STORAGE_KEY = 'pickleball-player-names';
+const SESSION_STORAGE_KEY = 'pickleball-session';
 
 function defaultForm(): SetupForm {
   try {
@@ -37,7 +38,9 @@ function defaultForm(): SetupForm {
         return { gameType: 'doubles', names };
       }
     }
-  } catch {}
+  } catch {
+    // ignore parse errors
+  }
   return { gameType: 'doubles', names: ['', '', '', ''] };
 }
 
@@ -254,7 +257,7 @@ function GameMenu({
               onClick={handleSwapTeams}
               className="w-full px-4 py-2.5 text-left text-sm text-(--text-h) hover:bg-(--accent-bg) transition-colors"
             >
-              Swap Teams
+              Swap Team Sides
             </button>
             <button
               onClick={handleNewGame}
@@ -418,9 +421,7 @@ function PointHistory({
             reversedI % 2 === 0 ? 'bg-(--bg)' : 'bg-(--accent-bg)/30';
           return (
             <React.Fragment key={reversedI}>
-              <span
-                className={`px-3 py-1.5 ${stripe} text-(--text) text-left`}
-              >
+              <span className={`px-3 py-1.5 ${stripe} text-(--text) text-left`}>
                 {server.name} served ({side})
               </span>
               <span
@@ -548,20 +549,30 @@ function CourtDiagram({
     return teams[teamIdx].filter((p) => positions[p.id] === side);
   }
 
+  const topScore = teamsSwapped ? state.scores[1] : state.scores[0];
+  const bottomScore = teamsSwapped ? state.scores[0] : state.scores[1];
+
   return (
     <div className="w-full border-2 border-(--border) rounded-xl overflow-hidden">
       {/* Team 0 (top) */}
-      <div className="flex divide-x-2 divide-(--border)">
-        <CourtCell
-          players={playersIn(0, 'even')}
-          serverId={serverId}
-          onRenamePlayer={onRenamePlayer}
-        />
-        <CourtCell
-          players={playersIn(0, 'odd')}
-          serverId={serverId}
-          onRenamePlayer={onRenamePlayer}
-        />
+      <div className="relative">
+        <div className="flex divide-x-2 divide-(--border)">
+          <CourtCell
+            players={playersIn(0, 'even')}
+            serverId={serverId}
+            onRenamePlayer={onRenamePlayer}
+          />
+          <CourtCell
+            players={playersIn(0, 'odd')}
+            serverId={serverId}
+            onRenamePlayer={onRenamePlayer}
+          />
+        </div>
+        <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+          <span className="text-4xl font-bold text-(--text-h) opacity-30">
+            {topScore}
+          </span>
+        </div>
       </div>
       {/* Net */}
       <div className="flex items-center gap-2 px-3 py-1 border-y-2 border-(--accent) bg-(--accent-bg)">
@@ -572,17 +583,24 @@ function CourtDiagram({
         <div className="flex-1 border-t border-dashed border-(--accent-border)" />
       </div>
       {/* Team 1 (bottom) */}
-      <div className="flex divide-x-2 divide-(--border)">
-        <CourtCell
-          players={playersIn(1, 'odd')}
-          serverId={serverId}
-          onRenamePlayer={onRenamePlayer}
-        />
-        <CourtCell
-          players={playersIn(1, 'even')}
-          serverId={serverId}
-          onRenamePlayer={onRenamePlayer}
-        />
+      <div className="relative">
+        <div className="flex divide-x-2 divide-(--border)">
+          <CourtCell
+            players={playersIn(1, 'odd')}
+            serverId={serverId}
+            onRenamePlayer={onRenamePlayer}
+          />
+          <CourtCell
+            players={playersIn(1, 'even')}
+            serverId={serverId}
+            onRenamePlayer={onRenamePlayer}
+          />
+        </div>
+        <div className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+          <span className="text-4xl font-bold text-(--text-h) opacity-30">
+            {bottomScore}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -617,7 +635,22 @@ function renamePlayerInState(
 }
 
 export default function App() {
-  const [session, setSession] = useState<GameSession | null>(null);
+  const [session, setSession] = useState<GameSession | null>(() => {
+    try {
+      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as GameSession) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (session) {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    } else {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+  }, [session]);
 
   if (!session) {
     return <SetupScreen onStart={setSession} />;
