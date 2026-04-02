@@ -84,6 +84,37 @@ describe('createDoublesGame', () => {
   });
 });
 
+// ── Doubles: start-of-game rule ────────────────────────────────────────────────
+
+describe('doubles start-of-game rule', () => {
+  it('team 1 starts with isSecondServer true', () => {
+    const state = createDoublesGame([p1, p2], [p3, p4]);
+    expect(state.servingTeamIndex).toBe(0);
+    expect(state.isSecondServer).toBe(true);
+  });
+
+  it('first serverLoses immediately gives serve to team 2', () => {
+    const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
+    expect(state.servingTeamIndex).toBe(1);
+  });
+
+  it('team 2 begins their first possession with isSecondServer false', () => {
+    const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
+    expect(state.isSecondServer).toBe(false);
+  });
+
+  it('team 2 gets two servers before side-out', () => {
+    let state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
+    // server 1 loses
+    state = serverLoses(state);
+    expect(state.servingTeamIndex).toBe(1); // still team 2
+    expect(state.isSecondServer).toBe(true);
+    // server 2 loses
+    state = serverLoses(state);
+    expect(state.servingTeamIndex).toBe(0); // back to team 1
+  });
+});
+
 // ── Singles: scorePoint ────────────────────────────────────────────────────────
 
 describe('singles scorePoint', () => {
@@ -215,37 +246,6 @@ describe('doubles serverLoses from server 1', () => {
   });
 });
 
-// ── Doubles: start-of-game rule ────────────────────────────────────────────────
-
-describe('doubles start-of-game rule', () => {
-  it('team 1 starts with isSecondServer true', () => {
-    const state = createDoublesGame([p1, p2], [p3, p4]);
-    expect(state.servingTeamIndex).toBe(0);
-    expect(state.isSecondServer).toBe(true);
-  });
-
-  it('first serverLoses immediately gives serve to team 2', () => {
-    const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
-    expect(state.servingTeamIndex).toBe(1);
-  });
-
-  it('team 2 begins their first possession with isSecondServer false', () => {
-    const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
-    expect(state.isSecondServer).toBe(false);
-  });
-
-  it('team 2 gets two servers before side-out', () => {
-    let state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
-    // server 1 loses
-    state = serverLoses(state);
-    expect(state.servingTeamIndex).toBe(1); // still team 2
-    expect(state.isSecondServer).toBe(true);
-    // server 2 loses
-    state = serverLoses(state);
-    expect(state.servingTeamIndex).toBe(0); // back to team 1
-  });
-});
-
 // ── Doubles: serverLoses from server 2 ────────────────────────────────────────────
 
 describe('doubles serverLoses from server 2', () => {
@@ -280,50 +280,52 @@ describe('doubles serverLoses from server 2', () => {
 
 // ── Score announcements ────────────────────────────────────────────────────────
 
-describe('singles getScoreAnnouncement', () => {
-  it('"serving-receiving"', () => {
-    const state = createSinglesGame(p1, p2);
-    expect(getScoreAnnouncement(state)).toBe('0-0');
+describe('getScoreAnnouncement', () => {
+  describe('singles getScoreAnnouncement', () => {
+    it('"serving-receiving"', () => {
+      const state = createSinglesGame(p1, p2);
+      expect(getScoreAnnouncement(state)).toBe('0-0');
+    });
+
+    it('reflects serving/receiving order correctly after serverLoses', () => {
+      // p1 scores 5, then serverLoses → p2 serves with 0, p1 has 5
+      let state: GameState = createSinglesGame(p1, p2);
+      for (let i = 0; i < 5; i++) state = serverScores(state);
+      state = serverLoses(state);
+      expect(getScoreAnnouncement(state)).toBe('0-5'); // p2 serving with 0, p1 receiving with 5
+    });
   });
 
-  it('reflects serving/receiving order correctly after serverLoses', () => {
-    // p1 scores 5, then serverLoses → p2 serves with 0, p1 has 5
-    let state: GameState = createSinglesGame(p1, p2);
-    for (let i = 0; i < 5; i++) state = serverScores(state);
-    state = serverLoses(state);
-    expect(getScoreAnnouncement(state)).toBe('0-5'); // p2 serving with 0, p1 receiving with 5
-  });
-});
+  describe('doubles getScoreAnnouncement', () => {
+    it('"serving-receiving-serverNumber"', () => {
+      const state = createDoublesGame([p1, p2], [p3, p4]);
+      // isSecondServer = true at start → server 2
+      expect(getScoreAnnouncement(state)).toBe('0-0-2');
+    });
 
-describe('doubles getScoreAnnouncement', () => {
-  it('"serving-receiving-serverNumber"', () => {
-    const state = createDoublesGame([p1, p2], [p3, p4]);
-    // isSecondServer = true at start → server 2
-    expect(getScoreAnnouncement(state)).toBe('0-0-2');
-  });
+    it('shows server 1 after team 2 gets serve', () => {
+      const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
+      expect(getScoreAnnouncement(state)).toBe('0-0-1');
+    });
 
-  it('shows server 1 after team 2 gets serve', () => {
-    const state = serverLoses(createDoublesGame([p1, p2], [p3, p4]));
-    expect(getScoreAnnouncement(state)).toBe('0-0-1');
-  });
+    it('works for a few points', () => {
+      let state: GameState = createDoublesGame([p1, p2], [p3, p4]);
+      state = serverScores(state);
+      expect(getScoreAnnouncement(state)).toBe('1-0-2');
+      state = serverScores(state);
+      expect(getScoreAnnouncement(state)).toBe('2-0-2');
 
-  it('works for a few points', () => {
-    let state: GameState = createDoublesGame([p1, p2], [p3, p4]);
-    state = serverScores(state);
-    expect(getScoreAnnouncement(state)).toBe('1-0-2');
-    state = serverScores(state);
-    expect(getScoreAnnouncement(state)).toBe('2-0-2');
+      state = serverLoses(state);
+      expect(getScoreAnnouncement(state)).toBe('0-2-1');
+      state = serverScores(state);
+      expect(getScoreAnnouncement(state)).toBe('1-2-1');
 
-    state = serverLoses(state);
-    expect(getScoreAnnouncement(state)).toBe('0-2-1');
-    state = serverScores(state);
-    expect(getScoreAnnouncement(state)).toBe('1-2-1');
+      state = serverLoses(state);
+      expect(getScoreAnnouncement(state)).toBe('1-2-2');
 
-    state = serverLoses(state);
-    expect(getScoreAnnouncement(state)).toBe('1-2-2');
-
-    state = serverLoses(state);
-    expect(getScoreAnnouncement(state)).toBe('2-1-1');
+      state = serverLoses(state);
+      expect(getScoreAnnouncement(state)).toBe('2-1-1');
+    });
   });
 });
 
