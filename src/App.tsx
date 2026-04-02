@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   createSinglesGame,
   createDoublesGame,
@@ -26,7 +26,18 @@ interface SetupForm {
   names: string[]; // 2 for singles, 4 for doubles
 }
 
+const NAMES_STORAGE_KEY = 'pickleball-player-names';
+
 function defaultForm(): SetupForm {
+  try {
+    const saved = localStorage.getItem(NAMES_STORAGE_KEY);
+    if (saved) {
+      const names = JSON.parse(saved);
+      if (Array.isArray(names) && names.length === 4) {
+        return { gameType: 'doubles', names };
+      }
+    }
+  } catch {}
   return { gameType: 'doubles', names: ['', '', '', ''] };
 }
 
@@ -42,6 +53,7 @@ function SetupScreen({ onStart }: { onStart: (s: GameSession) => void }) {
   }
 
   function handleStart() {
+    localStorage.setItem(NAMES_STORAGE_KEY, JSON.stringify(form.names));
     const makePlayer = (name: string, idx: number): Player => ({
       id: String(idx),
       name: name.trim() || `Player ${idx + 1}`,
@@ -357,20 +369,20 @@ function PointHistory({
 
   return (
     <div className="w-full">
-      <p className="text-xs uppercase tracking-widest text-(--text) mb-2">
+      <div className="text-xs uppercase tracking-widest text-(--text) mb-3">
         Score Log
-      </p>
-      <div className="flex flex-col rounded-lg overflow-hidden border border-(--border) text-xs">
+      </div>
+      <div className="grid grid-cols-3 rounded-lg overflow-hidden border border-(--border) text-xs">
         {/* Current state row */}
         {!state.isGameOver && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-(--accent-bg)">
-            <span className="flex-1 min-w-0 text-left font-bold">
+          <>
+            <span className="px-3 py-2 bg-(--accent-bg) font-bold text-left min-w-0">
               {server.name} serving ({side})
             </span>
-            <span className="font-mono text-(--text-h) font-bold text-nowrap shrink-0">
+            <span className="px-3 py-2 bg-(--accent-bg) font-mono text-(--text-h) font-bold text-nowrap flex items-center justify-center text-xl">
               {getScoreAnnouncement(state)}
             </span>
-            <span className="flex gap-2 shrink-0">
+            <span className="px-3 py-2 bg-(--accent-bg) flex gap-2 items-center justify-end">
               <button
                 onClick={() => onAction('serverScores')}
                 className="px-4 py-2 rounded bg-(--accent) text-white font-medium text-sm hover:opacity-90 transition-opacity"
@@ -384,7 +396,7 @@ function PointHistory({
                 Lose
               </button>
             </span>
-          </div>
+          </>
         )}
 
         {/* Past rows */}
@@ -405,20 +417,23 @@ function PointHistory({
           const stripe =
             reversedI % 2 === 0 ? 'bg-(--bg)' : 'bg-(--accent-bg)/30';
           return (
-            <div
-              key={reversedI}
-              className={`text-left flex items-center gap-2 px-3 py-1.5 ${stripe}`}
-            >
-              <span className="flex-1 min-w-0 text-(--text) text-nowrap overflow-hidden text-ellipsis">
+            <React.Fragment key={reversedI}>
+              <span
+                className={`px-3 py-1.5 ${stripe} text-(--text) text-left`}
+              >
                 {server.name} served ({side})
               </span>
-              <span className="font-mono text-(--text) text-nowrap shrink-0">
+              <span
+                className={`px-3 py-1.5 ${stripe} font-mono text-(--text) text-nowrap text-center`}
+              >
                 {getScoreAnnouncement(pastState)}
               </span>
-              <span className={`${resultClass} text-right shrink-0 w-14`}>
+              <span
+                className={`px-3 py-1.5 ${stripe} ${resultClass} text-right`}
+              >
                 {resultLabel}
               </span>
-            </div>
+            </React.Fragment>
           );
         })}
       </div>
