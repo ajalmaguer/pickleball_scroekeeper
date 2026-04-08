@@ -70,6 +70,15 @@ function flipSide(side: CourtSide): CourtSide {
   return side === 'even' ? 'odd' : 'even';
 }
 
+function getDoublesServerIds(
+  team: Team,
+  courtPositions: Record<string, CourtSide>
+): { server1Id: string; server2Id: string } {
+  const server1 = team.players.find((p) => courtPositions[p.id] === 'even')!;
+  const server2 = team.players.find((p) => p.id !== server1.id)!;
+  return { server1Id: server1.id, server2Id: server2.id };
+}
+
 // ── Core actions ───────────────────────────────────────────────────────────────
 
 export function serverScores(state: SinglesState): SinglesState;
@@ -129,19 +138,15 @@ export function serverLoses(state: GameState): GameState {
     return { ...state, isSecondServer: true, currentServerId: server2.id };
   }
 
-  // True side-out — serve passes to other team, their server 1 is on the score-parity side
+  // True side-out — serve passes to the player currently on the even side.
   const newTeamIndex = state.servingTeamIndex === 0 ? 1 : 0;
   const newTeam = state.teams[newTeamIndex];
-  const newScore = state.scores[newTeamIndex];
-  const server1Side: CourtSide = newScore % 2 === 0 ? 'even' : 'odd';
-  const server1 = newTeam.players.find(
-    (p) => state.courtPositions[p.id] === server1Side
-  )!;
+  const { server1Id } = getDoublesServerIds(newTeam, state.courtPositions);
   return {
     ...state,
     servingTeamIndex: newTeamIndex,
     isSecondServer: false,
-    currentServerId: server1.id,
+    currentServerId: server1Id,
   };
 }
 
@@ -239,18 +244,14 @@ export function setManualState(
   }
 
   // Determine currentServerId from servingTeamIndex + isSecondServer.
-  // Server 1 always stands on the score-parity side.
+  // In doubles, server 1 starts the possession from the even side.
   const servingTeamIndex = servingIndexOrTeam;
   const servingTeam = state.teams[servingTeamIndex];
-  const server1Side: CourtSide =
-    scores[servingTeamIndex] % 2 === 0 ? 'even' : 'odd';
-  const server1 = servingTeam.players.find(
-    (p) => courtPositions[p.id] === server1Side
-  )!;
-  const server2 = servingTeam.players.find(
-    (p) => courtPositions[p.id] !== server1Side
-  )!;
-  const currentServerId = isSecondServer ? server2.id : server1.id;
+  const { server1Id, server2Id } = getDoublesServerIds(
+    servingTeam,
+    courtPositions
+  );
+  const currentServerId = isSecondServer ? server2Id : server1Id;
 
   return {
     ...state,

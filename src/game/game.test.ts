@@ -277,6 +277,28 @@ describe('doubles serverLoses from server 2', () => {
     const after = serverLoses(before);
     expect(after.courtPositions).toEqual(before.courtPositions);
   });
+
+  it('side-out back to the original team resumes with player 2 serving from the even side', () => {
+    let state = createDoublesGame([p1, p2], [p3, p4]);
+
+    state = serverScores(state);
+    expect(getServer(state)).toEqual(p1);
+    expect(getPlayerSide(state, p1)).toBe('odd');
+    expect(getPlayerSide(state, p2)).toBe('even');
+
+    state = serverLoses(state);
+    expect(state.servingTeamIndex).toBe(1);
+    expect(getServer(state)).toEqual(p3);
+
+    state = serverLoses(state);
+    expect(getServer(state)).toEqual(p4);
+
+    state = serverLoses(state);
+    expect(state.servingTeamIndex).toBe(0);
+    expect(state.isSecondServer).toBe(false);
+    expect(getPlayerSide(state, p2)).toBe('even');
+    expect(getServer(state)).toEqual(p2);
+  });
 });
 
 // ── Score announcements ────────────────────────────────────────────────────────
@@ -579,30 +601,30 @@ describe('setManualState', () => {
       expect(getPlayerSide(state, p4)).toBe('odd');
     });
 
-    it('sets currentServerId to server 1 (score-parity side) when isSecondServer=false', () => {
-      // team0 score=5 (odd) → server1Side='odd' → p1 is on odd → p1 is server 1
+    it('sets currentServerId to the even-side player when isSecondServer=false', () => {
+      // team0 score=5 (odd) → p2 is on even → p2 starts the possession as server 1
       const state = setManualState(
         createDoublesGame([p1, p2], [p3, p4]),
         [5, 3],
         0,
         false
       );
-      expect(getServer(state)).toEqual(p1);
+      expect(getServer(state)).toEqual(p2);
     });
 
-    it('sets currentServerId to server 2 (non-parity side) when isSecondServer=true', () => {
-      // team0 score=5 (odd) → server1Side='odd' → p1 on odd → p2 (on even) is server 2
+    it('sets currentServerId to the odd-side player when isSecondServer=true', () => {
+      // team0 score=5 (odd) → p2 is on even as server 1, so p1 is server 2
       const state = setManualState(
         createDoublesGame([p1, p2], [p3, p4]),
         [5, 3],
         0,
         true
       );
-      expect(getServer(state)).toEqual(p2);
+      expect(getServer(state)).toEqual(p1);
     });
 
-    it('sets currentServerId correctly for team1 serving with even score', () => {
-      // team1 score=6 (even) → server1Side='even' → p3 on even → p3 is server 1
+    it('sets currentServerId correctly for team1 serving from the even side', () => {
+      // team1 score=6 (even) → p3 is on even → p3 is server 1
       const state = setManualState(
         createDoublesGame([p1, p2], [p3, p4]),
         [4, 6],
